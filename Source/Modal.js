@@ -24,7 +24,8 @@ var Modal = new Class({
 		width: 'auto',
 		height: 'auto',
 		draggable: false,
-		title: '',
+		draggableButton: false,
+		title: false,
 		buttons: [],
 		fadeDelay: 400,
 		fadeDuration: 400,
@@ -38,6 +39,7 @@ var Modal = new Class({
 		constrain: false,
 		resetOnScroll: true,
 		baseClass: 'modal',
+		buttonsInTop: true,
 		simpleBox:true,
 		errorMessage: '<p>The requested file could not be found.</p>'/*,
 		onOpen: $empty,
@@ -162,12 +164,12 @@ var Modal = new Class({
 		}).inject(this.contentBox);
 		
 		//button container
-		this.footer = new Element('div',{
-			'class': 'modalFooter',
+		this.buttonsBox = new Element('div',{
+			'class': 'modalButtons'+(this.options.buttonsInTop?' top':' bottom'),
 			styles: {
 				display: 'none'
 			}
-		}).inject(this.contentBox);
+		}).inject(this.contentBox,this.options.buttonsInTop?'top':'bottom');
 		
 		//draw overlay
 		this.overlay = new Element('div',{
@@ -192,9 +194,11 @@ var Modal = new Class({
 		this.buttons = [];
 		if(this.options.buttons.length) {
 			this.options.buttons.each(function(button) {
-				this.addButton(button.title,button.event,button.color);
+				this.addButton(button.title,button.event,button.draggable);
 			},this);
 		}
+		
+		//create handle on draggable button
 		
 		//focus node
 		this.focusNode = this.box;
@@ -203,32 +207,38 @@ var Modal = new Class({
 	},
 	
 	// Manage buttons
-	addButton: function(title,clickEvent,color) {
-		this.footer.setStyle('display','block');
-		var focusClass = 'modalfocus' + color;
+	addButton: function(title,clickEvent,draggable) {
+		clickEvent = clickEvent === undefined ? this.close : clickEvent ;
+		this.buttonsBox.setStyle('display','block');
+		var focusClass = 'modalfocus';
 		var label = new Element('label',{
-			'class': color ? 'modal' + color : '',
+			'class': 'modalLabel',
 			events: {
 				mousedown: function() {
-					if(color) {
-						label.addClass(focusClass);
-						var ev = function() {
-							label.removeClass(focusClass);
-							document.id(document.body).removeEvent('mouseup',ev);
-						};
-						document.id(document.body).addEvent('mouseup',ev);
-					}
+					label.addClass(focusClass);
+					var ev = function() {
+						label.removeClass(focusClass);
+						document.id(document.body).removeEvent('mouseup',ev);
+					};
+					document.id(document.body).addEvent('mouseup',ev);
 				}
 			}
 		});
+
+		if(draggable) {
+			clickEvent = function(){};
+			new Drag(this.box,{ handle: label });
+			label.addClass('modalDraggable');
+		}
+
 		this.buttons[title] = (new Element('input',{
 			type: 'button',
 			value: title,
 			events: {
-				click: (clickEvent || this.close).bind(this)
+				click: (clickEvent).bind(this)
 			}
 		}).inject(label));
-		label.inject(this.footer);
+		label.inject(this.buttonsBox);
 		return this;
 	},
 	showButton: function(title) {
@@ -242,6 +252,13 @@ var Modal = new Class({
 	
 	// Open and close box
 	close: function(fast) {
+		console.log(typeof(fast))
+		console.log(typeof(fast))
+		console.log(typeof(true))
+		console.log(typeof(false))
+		
+		
+		fast = typeof(fast)==="boolean" ? fast : false;
 		if(this.isOpen) {
 			this.box[fast ? 'setStyles' : 'tween']('opacity',0);
 			this.fireEvent('close');
@@ -252,6 +269,7 @@ var Modal = new Class({
 	},
 	
 	open: function(fast) {
+		fast = typeof(fast)==="boolean" ? fast : false;
 		if(!this.isOpen) {
 			this.box[fast ? 'setStyles' : 'tween']('opacity',1);
 			if(this.resizeOnOpen) this._resize();

@@ -23,7 +23,7 @@ Modal.Static = new Class({
 			y: 20
 		}
 	},
-	open: function(fast,x,y) {
+	open: function(x,y,fast) {
 		this.parent(fast);
 		this._position(x,y);
 	},
